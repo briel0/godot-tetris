@@ -1,5 +1,7 @@
 extends Node
 
+var atualColor
+
 var activePoints = []
 
 var imino = [Vector2(4, 1), Vector2(5, 1), Vector2(6, 1), Vector2(7, 1)]
