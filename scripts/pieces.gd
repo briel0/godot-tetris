@@ -1,13 +1,5 @@
 extends TileMapLayer
 
-var speed
-
-var steps = [0, 0, 0]
-
-var stepsLeft
-
-var stepsReq
-
 var select
 
 func getCenter(pontos):
@@ -40,10 +32,9 @@ func newPiece():
     drawPiece()
         
 func _ready():
-    speed = 1.0
-    steps = [0, 0, 0]
-    stepsReq = 50
     newPiece()
+    get_parent().get_node("TimerH").timeout.connect(on_timeoutHorizontal)
+    get_parent().get_node("TimerV").timeout.connect(on_timeoutVertical)
 
 func dellPiece():
     for pos in Global.activePoints:
@@ -52,25 +43,6 @@ func dellPiece():
 func drawPiece():
     for pos in Global.activePoints:
         set_cell(pos, 0, Vector2(select, 0))
-    
-func getMove():
-    if Input.is_action_just_pressed("ui_up"):
-        rotatePiece()	
-    if Input.is_action_pressed("ui_down"):
-        steps[2] += 10
-    if Input.is_action_pressed("ui_left"):
-        steps[0] += 10
-    if Input.is_action_pressed("ui_right"):
-        steps[1] += 10
-        
-func _process(delta: float):
-    getMove()
-    steps[2] += speed
-    var directions = [Vector2.LEFT, Vector2.RIGHT, Vector2.DOWN]
-    for i in range(3):
-        if steps[i] > stepsReq:
-            movePiece(directions[i])
-            steps[i] = 0
 
 func movePiece(direction : Vector2):
     dellPiece()
@@ -79,3 +51,22 @@ func movePiece(direction : Vector2):
         newPos.append(pos + direction)
     Global.activePoints = newPos
     drawPiece()
+
+func on_timeoutHorizontal():
+    if Input.is_action_just_pressed("ui_up"):
+        rotatePiece()
+    if Input.is_action_pressed("ui_down"):
+        movePiece(Vector2.DOWN * 0.3)
+        
+    var directions = {
+        "ui_left" : Vector2.LEFT,
+        "ui_right" : Vector2.RIGHT
+    }
+    
+    for key in directions.keys():
+        if Input.is_action_just_pressed(key):
+            movePiece(directions[key])
+            break
+
+func on_timeoutVertical() -> void:
+    movePiece(Vector2.DOWN)
