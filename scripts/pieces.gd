@@ -2,6 +2,8 @@ extends TileMapLayer
 
 var select
 
+@onready var board = get_parent().get_node("Board")
+
 func getCenter(pontos):
     var soma_x = 0
     var soma_y = 0
@@ -15,42 +17,70 @@ func rotatePoint(point, center):
     var y = point.y - center.y
     var newX = -y
     var newY = x
-    return Vector2(newX + center.x, newY + center.y)
-    
+    return Vector2((newX + center.x), (newY + center.y))
+
+func canMove(postPoints):
+    for point in postPoints:
+        var cellPosition = board.get_cell_source_id(point)
+        if(cellPosition != -1):
+            return false
+    return true
+
 func rotatePiece():
-    dellPiece()
     var newPoints = []
     var atualCenter = getCenter(Global.activePoints)
     for pos in Global.activePoints:
-        newPoints.append(rotatePoint(pos, atualCenter))		
+        newPoints.append(rotatePoint(pos, atualCenter))
+    if(!canMove(newPoints)):
+        return
+    dellPiece()
     Global.activePoints = newPoints
-    drawPiece()
+    if(willStop(Global.activePoints)):
+        drawPiece(board)
+        newPiece()
+    else:
+        drawPiece(self)
     
 func newPiece():
     select = randi_range(0, 5)
+    print(select)
     Global.activePoints = Global.pieces[select]
-    drawPiece()
+    drawPiece(self)
         
 func _ready():
     newPiece()
     get_parent().get_node("TimerH").timeout.connect(on_timeoutHorizontal)
     get_parent().get_node("TimerV").timeout.connect(on_timeoutVertical)
+    set_cell(Vector2(2, 21), 0, Vector2(1, 0))
 
 func dellPiece():
     for pos in Global.activePoints:
         erase_cell(pos)	
 
-func drawPiece():
+func drawPiece(tilePlace):
     for pos in Global.activePoints:
-        set_cell(pos, 0, Vector2(select, 0))
+        tilePlace.set_cell(pos, 0, Vector2(select, 0))
+
+func willStop(postPoints):
+    for point in postPoints:
+        var cellid = board.get_cell_source_id(point + Vector2.DOWN)
+        if cellid != -1:
+            return true
+    return false
 
 func movePiece(direction : Vector2):
-    dellPiece()
     var newPos = []
     for pos in Global.activePoints:
         newPos.append(pos + direction)
+    if(!canMove(newPos)):
+        return
+    dellPiece()
     Global.activePoints = newPos
-    drawPiece()
+    if(willStop(Global.activePoints)):
+        drawPiece(board)
+        newPiece()
+    else:
+        drawPiece(self)
 
 func on_timeoutHorizontal():
     if Input.is_action_just_pressed("ui_up"):
