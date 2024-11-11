@@ -1,23 +1,21 @@
 extends TileMapLayer
 
+var cntSpin
+
+var controle
+
+var atualCenter
+
 var select
 
 @onready var board = get_parent().get_node("Board")
-
-func getCenter(pontos):
-    var soma_x = 0
-    var soma_y = 0
-    for ponto in pontos:
-        soma_x += ponto.x
-        soma_y += ponto.y
-    return Vector2(soma_x / pontos.size(), soma_y / pontos.size())
 
 func rotatePoint(point, center):
     var x = point.x - center.x
     var y = point.y - center.y
     var newX = -y
     var newY = x
-    return Vector2((newX + center.x), (newY + center.y))
+    return Vector2(newX + center.x, newY + center.y)
 
 func canMove(postPoints):
     for point in postPoints:
@@ -26,15 +24,40 @@ func canMove(postPoints):
             return false
     return true
 
-func rotatePiece():
-    var newPoints = []
-    var atualCenter = getCenter(Global.activePoints)
+func plot(ponto):
+    var nova = Sprite2D.new()
+    nova.texture = preload("res://assets/5x5_red.png")
+    nova.position = ponto
+    add_child(nova)
+
+func getCenter():
+    if(select > 1):
+        return map_to_local(Global.activePoints[0])
+    var temp : Vector2
     for pos in Global.activePoints:
-        newPoints.append(rotatePoint(pos, atualCenter))
-    if(!canMove(newPoints)):
+        temp += pos
+    temp /= 4
+    if(cntSpin % 4 == 0 || cntSpin % 4 == 3):
+        return map_to_local(temp) + Vector2(16, 16)
+    elif(cntSpin % 4 == 1):
+        return map_to_local(temp) + Vector2(-16, 16)
+    elif(cntSpin % 4 == 2):
+        return map_to_local(temp) + Vector2(16, -16)
+
+func rotatePiece():
+    if(select == 1):
+        return
+    var tilePoints = []
+    atualCenter = getCenter()
+    cntSpin += 1
+    for pos in Global.activePoints:
+        var rotatedPos = rotatePoint(map_to_local(pos), atualCenter)
+        tilePoints.append(Vector2(local_to_map(rotatedPos)))
+        
+    if(!canMove(tilePoints)):
         return
     dellPiece()
-    Global.activePoints = newPoints
+    Global.activePoints = tilePoints
     if(willStop(Global.activePoints)):
         drawPiece(board)
         newPiece()
@@ -42,8 +65,8 @@ func rotatePiece():
         drawPiece(self)
     
 func newPiece():
-    select = randi_range(0, 5)
-    print(select)
+    cntSpin = 0
+    select = randi_range(0, 6)
     Global.activePoints = Global.pieces[select]
     drawPiece(self)
         
@@ -51,7 +74,7 @@ func _ready():
     newPiece()
     get_parent().get_node("TimerH").timeout.connect(on_timeoutHorizontal)
     get_parent().get_node("TimerV").timeout.connect(on_timeoutVertical)
-    set_cell(Vector2(2, 21), 0, Vector2(1, 0))
+    #set_cell(Vector2(2, 21), 0, Vector2(1, 0))
 
 func dellPiece():
     for pos in Global.activePoints:
@@ -81,7 +104,7 @@ func movePiece(direction : Vector2):
         newPiece()
     else:
         drawPiece(self)
-
+        
 func on_timeoutHorizontal():
     if Input.is_action_just_pressed("ui_up"):
         rotatePiece()
@@ -98,5 +121,5 @@ func on_timeoutHorizontal():
             movePiece(directions[key])
             break
 
-func on_timeoutVertical() -> void:
+func on_timeoutVertical():
     movePiece(Vector2.DOWN)
